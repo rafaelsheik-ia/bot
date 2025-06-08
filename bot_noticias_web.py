@@ -9,7 +9,7 @@ from flask import Flask
 TELEGRAM_TOKEN = '8067274719:AAEWHOSwqquzP3qvhBKZryM7QfTMEAbMPhg'
 CHAT_ID = '-1002562674482'
 API_TUBE_KEY = 'api_live_WDbN2xEC4UiK7njGMI5NueewC1BwqUCVnkvSFDtxEre'
-NEWSDATA_KEY = 'pub_81f6ebae1409466bfbf96d0d12edc1d7c'
+NEWSDATA_KEY = 'pub_81f6ebae140946bfbf96d0d12edc1d7c'
 METALS_API_KEY = '68802c527be38e8e320c2c574ce4c3cc'
 
 # DEBUG: Verificando se as chaves foram carregadas corretamente
@@ -26,45 +26,46 @@ ULTIMA_RECEITA = (-1, None)
 
 app = Flask(__name__)
 
-@app.route('/')
+@app.route("/")
 def home():
-    return 'Bot de notícias ativo!'
+    return "Bot de notícias ativo!"
 
 def enviar_mensagem(mensagem):
     try:
         print(f"➡️ Enviando: {mensagem[:50]}...")
         url = f'https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage'
         data = {'chat_id': CHAT_ID, 'text': mensagem, 'parse_mode': 'HTML'}
-        resp = requests.post(url, data=data, timeout=10)
+        resp = requests.post(url, data=data, timeout=10 )
         print(f"✅ RESPOSTA TELEGRAM STATUS: {resp.status_code}")
         print(f"✅ RESPOSTA TELEGRAM BODY: {resp.text}") # Adicionado para imprimir o corpo da resposta
     except Exception as e:
         print("❌ Erro ao enviar mensagem:", e)
 
 def buscar_noticias(topico):
-    ontem = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
-    urls = [
-        f'https://newsdata.io/api/1/news?apikey={API_TUBE_KEY}&q={topico}&language=pt&from_date={ontem}',
-        f'https://newsdata.io/api/1/news?apikey={NEWSDATA_KEY}&q={topico}&language=pt&from_date={ontem}'
-    ]
-    for url in urls:
-        try:
-            resp = requests.get(url, timeout=10)
-            print(f"DEBUG: Resposta News API ({url[:30]}...): Status {resp.status_code}, Body: {resp.text[:100]}...")
-            noticias = resp.json().get('results', [])
-            for noticia in noticias:
-                link = noticia.get('link') or noticia.get('url')
-                titulo = noticia.get('title', 'Sem título')
-                if link and link not in ENVIADAS:
-                    ENVIADAS.add(link)
-                    return f"🗞 <b>{titulo}</b>\n{link}"
-        except Exception as e:
-            print("Erro ao buscar notícia:", e)
+    for i in range(7):
+        data_busca = (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d")
+        urls = [
+            f'https://newsdata.io/api/1/news?apikey={API_TUBE_KEY}&q={topico}&language=pt&from_date={data_busca}',
+            f'https://newsdata.io/api/1/news?apikey={NEWSDATA_KEY}&q={topico}&language=pt&from_date={data_busca}'
+        ]
+        for url in urls:
+            try:
+                resp = requests.get(url, timeout=10 )
+                print(f"DEBUG: Resposta News API ({url[:30]}...): Status {resp.status_code}, Body: {resp.text[:100]}...")
+                noticias = resp.json().get('results', [])
+                for noticia in noticias:
+                    link = noticia.get('link') or noticia.get('url')
+                    titulo = noticia.get('title', 'Sem título')
+                    if link and link not in ENVIADAS:
+                        ENVIADAS.add(link)
+                        return f"🗞 <b>{titulo}</b>\n{link}"
+            except Exception as e:
+                print("Erro ao buscar notícia:", e)
     return None
 
 def buscar_cotacoes():
     try:
-        resp = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd,brl')
+        resp = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd,brl' )
         print(f"DEBUG: Resposta CoinGecko API: Status {resp.status_code}, Body: {resp.text[:100]}...")
         data = resp.json()
         btc = data['bitcoin']
@@ -80,15 +81,16 @@ def buscar_cotacoes():
 
 def buscar_metais():
     try:
-        ontem = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
-        url = f'https://metals-api.com/api/{ontem}?access_key={METALS_API_KEY}&base=USD&symbols=XAU,XAG'
-        r = requests.get(url)
+        # Ajustado para buscar dados de 48 horas atrás
+        data_metais = (datetime.utcnow() - timedelta(days=2)).strftime("%Y-%m-%d")
+        url = f'https://metals-api.com/api/{data_metais}?access_key={METALS_API_KEY}&base=USD&symbols=XAU,XAG'
+        r = requests.get(url )
         print(f"DEBUG: Resposta Metals API: Status {r.status_code}, Body: {r.text[:100]}...")
         data = r.json()
         ouro = data['rates']['XAU']
         prata = data['rates']['XAG']
         return (
-            f"🥇 <b>Metais Preciosos ({ontem})</b>\n"
+            f"🥇 <b>Metais Preciosos ({data_metais})</b>\n"
             f"Ouro (XAU): ${1 / ouro:.2f} por onça\n"
             f"Prata (XAG): ${1 / prata:.2f} por onça"
         )
@@ -108,7 +110,7 @@ receitas = {
     "jantar": ["🍲 Omelete de forno: https://www.tudogostoso.com.br/receita/277025-omelete-de-forno-fit.html"]
 }
 
-def enviar_motivacional():
+def enviar_motivacional( ):
     global ULTIMA_MOTIVACIONAL
     hora = datetime.now().hour
     hoje = datetime.now().date()
@@ -155,8 +157,8 @@ def enviar_inicio():
     enviar_mensagem("🤖 Bot iniciado! Aqui está sua primeira dose de informação:")
 
     # Motivacional e Receita (independente da hora, só no início)
-    enviar_mensagem("💡 Motivação: " + random.choice(mensagens_motivacionais["bom_dia"]))
-    enviar_mensagem("🍽 Receita: " + random.choice(receitas["cafe"]))
+    enviar_mensagem("💡 Motivação: " + random.choice(mensagens_motivacionais["bom_dia"])) 
+    enviar_mensagem("🍽 Receita: " + random.choice(receitas["cafe"])) 
 
     # Notícia
     msg = buscar_noticias("inteligência artificial") or buscar_noticias("criptomoeda")
@@ -169,11 +171,15 @@ def enviar_inicio():
     cot = buscar_cotacoes()
     if cot:
         enviar_mensagem(cot)
+    else:
+        enviar_mensagem("⚠️ Não foi possível obter cotações de criptomoedas no momento.") # Adicionado
 
     # Metais
     metais = buscar_metais()
     if metais:
         enviar_mensagem(metais)
+    else:
+        enviar_mensagem("⚠️ Não foi possível obter cotações de metais no momento.") # Adicionado
 
 def loop_automacoes():
     enviar_inicio()  # Executa uma única vez no início
@@ -208,4 +214,3 @@ def loop_automacoes():
 if __name__ == '__main__':
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=10000, debug=False, use_reloader=False)).start()
     threading.Thread(target=loop_automacoes).start()
-
