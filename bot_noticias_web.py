@@ -141,9 +141,9 @@ def enviar_receita_do_dia():
 def loop_automacoes():
     topicos = ["inteligência artificial", "criptomoeda", "tecnologia", "notícia mundial"]
 
-    # 🔥 Enviar algo logo ao iniciar (força uma mensagem ao vivo)
+    # 🔥 Envio inicial imediato
     enviar_mensagem("🤖 Bot de notícias iniciado e operando!")
-    
+
     msg = buscar_noticias("inteligência artificial") or buscar_noticias("criptomoeda")
     if msg:
         enviar_mensagem(msg)
@@ -158,7 +158,7 @@ def loop_automacoes():
     if metais:
         enviar_mensagem(metais)
 
-    # 🔁 Entra no loop normal após o envio inicial
+    # 🔁 Entra no loop cíclico a cada 30 minutos
     while True:
         print("🔄 Executando automações...")
 
@@ -184,7 +184,7 @@ def loop_automacoes():
 
         time.sleep(1740)
 
-
+# Início do Flask + Loop
 if __name__ == '__main__':
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=10000, debug=False, use_reloader=False)).start()
     threading.Thread(target=loop_automacoes).start()
