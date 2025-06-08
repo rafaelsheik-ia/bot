@@ -13,6 +13,8 @@ NEWSDATA_KEY = os.getenv('NEWSDATA_KEY')
 METALS_API_KEY = os.getenv('METALS_API_KEY')
 
 ENVIADAS = set()
+ULTIMA_MOTIVACIONAL = None
+ULTIMA_RECEITA = None
 
 app = Flask(__name__)
 
@@ -51,7 +53,7 @@ def buscar_noticias(topico):
 
 def buscar_cotacoes():
     try:
-        resp = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd,brl,eur')
+        resp = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd,brl')
         data = resp.json()
         btc = data['bitcoin']
         eth = data['ethereum']
@@ -82,84 +84,87 @@ def buscar_metais():
         return None
 
 mensagens_motivacionais = {
-    "bom_dia": [
-        "🌞 Bom dia! Comece aprendendo algo novo 👉 https://t.me/rafaelsheikIA"
-    ],
-    "boa_tarde": [
-        "🌤 Boa tarde! Mantenha o foco 👉 https://t.me/rafaelsheikIA"
-    ],
-    "boa_noite": [
-        "🌙 Boa noite! Enquanto o mundo dorme, a inovação não para 👉 https://t.me/rafaelsheikIA"
-    ]
+    "bom_dia": ["🌞 Bom dia! Comece aprendendo algo novo 👉 https://t.me/rafaelsheikIA"],
+    "boa_tarde": ["🌤 Boa tarde! Mantenha o foco 👉 https://t.me/rafaelsheikIA"],
+    "boa_noite": ["🌙 Boa noite! Enquanto o mundo dorme, a inovação não para 👉 https://t.me/rafaelsheikIA"]
 }
 
 receitas = {
-    "cafe": [
-        "☕ Smoothie com aveia: https://www.receiteria.com.br/receita/smoothie-de-banana-com-aveia/"
-    ],
-    "almoco": [
-        "🍛 Frango com legumes: https://www.receiteria.com.br/receita/frango-com-legumes-no-vapor/"
-    ],
-    "jantar": [
-        "🍲 Omelete de forno: https://www.tudogostoso.com.br/receita/277025-omelete-de-forno-fit.html"
-    ]
+    "cafe": ["☕ Smoothie com aveia: https://www.receiteria.com.br/receita/smoothie-de-banana-com-aveia/"],
+    "almoco": ["🍛 Frango com legumes: https://www.receiteria.com.br/receita/frango-com-legumes-no-vapor/"],
+    "jantar": ["🍲 Omelete de forno: https://www.tudogostoso.com.br/receita/277025-omelete-de-forno-fit.html"]
 }
 
 def enviar_motivacional():
+    global ULTIMA_MOTIVACIONAL
     hora = datetime.now().hour
+    hoje = datetime.now().date()
+    if ULTIMA_MOTIVACIONAL == (hora, hoje):
+        return
+
+    tipo = None
     if hora == 8:
         tipo = "bom_dia"
     elif hora == 12:
         tipo = "boa_tarde"
     elif hora == 18:
         tipo = "boa_noite"
-    else:
-        return
-    mensagem = random.choice(mensagens_motivacionais[tipo])
-    enviar_mensagem(mensagem)
+
+    if tipo:
+        mensagem = random.choice(mensagens_motivacionais[tipo])
+        enviar_mensagem(mensagem)
+        ULTIMA_MOTIVACIONAL = (hora, hoje)
 
 def enviar_receita_do_dia():
+    global ULTIMA_RECEITA
     hora = datetime.now().hour
+    hoje = datetime.now().date()
+    if ULTIMA_RECEITA == (hora, hoje):
+        return
+
+    tipo = None
     if hora == 8:
         tipo = "cafe"
     elif hora == 12:
         tipo = "almoco"
     elif hora == 18:
         tipo = "jantar"
-    else:
-        return
-    mensagem = random.choice(receitas[tipo])
-    enviar_mensagem(mensagem)
+
+    if tipo:
+        mensagem = random.choice(receitas[tipo])
+        enviar_mensagem(mensagem)
+        ULTIMA_RECEITA = (hora, hoje)
 
 def loop_automacoes():
     topicos = ["inteligência artificial", "criptomoeda", "tecnologia", "notícia mundial"]
     while True:
         print("🔄 Executando automações...")
 
-        # Mensagens do dia
+        # Mensagens motivacionais e receitas
         enviar_motivacional()
         enviar_receita_do_dia()
 
-        # Buscar notícia
+        # Notícias (uma por ciclo)
+        random.shuffle(topicos)
         for topico in topicos:
             msg = buscar_noticias(topico)
             if msg:
                 enviar_mensagem(msg)
                 break
 
-        # Cotação cripto/moedas
+        # Cotação de criptomoedas/moedas
         cot = buscar_cotacoes()
         if cot:
             enviar_mensagem(cot)
 
-        # Espera 1 min e envia metais
+        # Esperar 1 minuto e enviar metais
         time.sleep(60)
         metais = buscar_metais()
         if metais:
             enviar_mensagem(metais)
 
-        # Aguarda 30 minutos para repetir o ciclo
-        time.sleep(1800)
+        # Espera até o próximo ciclo (30 minutos no total)
+        time.sleep(1740)
 
 if __name__ == '__main__':
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)), debug=False, use_reloader=False)).start()
