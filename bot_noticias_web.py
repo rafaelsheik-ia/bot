@@ -1,4 +1,3 @@
-
 import requests
 import time
 import random
@@ -73,17 +72,19 @@ def nova_noticia(lista):
     hoje = datetime.utcnow().date()
     for noticia in lista:
         data_pub = noticia.get("pubDate") or noticia.get("published_at") or noticia.get("publishedAt")
-        try:
-            if data_pub:
+        url = noticia.get("url") or noticia.get("link")
+        titulo = noticia.get("title", "Sem título")
+
+        if data_pub:
+            try:
                 data_noticia = datetime.strptime(data_pub[:10], "%Y-%m-%d").date()
                 if data_noticia != hoje:
                     continue
-        except:
-            continue
-        url = noticia.get('url') or noticia.get('link')
+            except:
+                continue
+
         if url and url not in ENVIADAS:
             ENVIADAS.add(url)
-            titulo = noticia.get('title', 'Sem título')
             return f"🗞 <b>{titulo}</b>\n{url}"
     return None
 
@@ -212,8 +213,21 @@ if __name__ == "__main__":
                 buscar_noticias_newsdata(topico)
             )
             msg = nova_noticia(noticias)
+
+            if not msg:
+                # Nenhuma notícia relevante foi encontrada, buscar global
+                fallback_topico = "notícia mundial"
+                noticias_fallback = (
+                    buscar_noticias_apitube(fallback_topico) +
+                    buscar_noticias_newsdata(fallback_topico)
+                )
+                msg = nova_noticia(noticias_fallback)
+                if msg:
+                    msg = "🌍 <b>Notícia Importante do Mundo</b>\n" + msg
+
             if msg:
                 enviar_mensagem(msg)
+
             indice_topico += 1
             ultima_noticia = agora
 
