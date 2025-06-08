@@ -25,10 +25,11 @@ def home():
 
 def enviar_mensagem(mensagem):
     try:
+        print(f"➡️ Enviando: {mensagem[:50]}...")
         url = f'https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage'
         data = {'chat_id': CHAT_ID, 'text': mensagem, 'parse_mode': 'HTML'}
-        requests.post(url, data=data, timeout=10)
-        print("✅ Mensagem enviada:", mensagem)
+        resp = requests.post(url, data=data, timeout=10)
+        print(f"✅ RESPOSTA TELEGRAM: {resp.status_code}")
     except Exception as e:
         print("❌ Erro ao enviar mensagem:", e)
 
@@ -100,7 +101,6 @@ def enviar_motivacional():
     global ULTIMA_MOTIVACIONAL
     hora = datetime.now().hour
     hoje = datetime.now().date()
-
     if ULTIMA_MOTIVACIONAL == (hora, hoje):
         return
 
@@ -121,7 +121,6 @@ def enviar_receita_do_dia():
     global ULTIMA_RECEITA
     hora = datetime.now().hour
     hoje = datetime.now().date()
-
     if ULTIMA_RECEITA == (hora, hoje):
         return
 
@@ -138,29 +137,40 @@ def enviar_receita_do_dia():
         enviar_mensagem(mensagem)
         ULTIMA_RECEITA = (hora, hoje)
 
-def loop_automacoes():
-    topicos = ["inteligência artificial", "criptomoeda", "tecnologia", "notícia mundial"]
+def enviar_inicio():
+    """Função chamada uma única vez no início."""
+    print("🚀 Enviando mensagens iniciais...")
 
-    # 🔥 Envio inicial imediato
-    enviar_mensagem("🤖 Bot de notícias iniciado e operando!")
+    enviar_mensagem("🤖 Bot iniciado! Aqui está sua primeira dose de informação:")
 
+    # Motivacional e Receita (independente da hora, só no início)
+    enviar_mensagem("💡 Motivação: " + random.choice(mensagens_motivacionais["bom_dia"]))
+    enviar_mensagem("🍽 Receita: " + random.choice(receitas["cafe"]))
+
+    # Notícia
     msg = buscar_noticias("inteligência artificial") or buscar_noticias("criptomoeda")
     if msg:
         enviar_mensagem(msg)
     else:
-        enviar_mensagem("⚠️ Nenhuma notícia disponível agora.")
+        enviar_mensagem("⚠️ Nenhuma notícia disponível no momento.")
 
+    # Cotações
     cot = buscar_cotacoes()
     if cot:
         enviar_mensagem(cot)
 
+    # Metais
     metais = buscar_metais()
     if metais:
         enviar_mensagem(metais)
 
-    # 🔁 Entra no loop cíclico a cada 30 minutos
+def loop_automacoes():
+    enviar_inicio()  # Executa uma única vez no início
+
+    topicos = ["inteligência artificial", "criptomoeda", "tecnologia", "notícia mundial"]
+
     while True:
-        print("🔄 Executando automações...")
+        print("🔄 Ciclo automático em execução...")
 
         enviar_motivacional()
         enviar_receita_do_dia()
@@ -184,7 +194,6 @@ def loop_automacoes():
 
         time.sleep(1740)
 
-# Início do Flask + Loop
 if __name__ == '__main__':
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=10000, debug=False, use_reloader=False)).start()
     threading.Thread(target=loop_automacoes).start()
