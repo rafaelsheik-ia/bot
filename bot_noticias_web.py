@@ -100,7 +100,8 @@ mensagens_motivacionais = {
 receitas = {
     "cafe": ["☕ Smoothie com aveia: https://www.receiteria.com.br/receita/smoothie-de-banana-com-aveia/"],
     "almoco": ["🍛 Frango com legumes: https://www.receiteria.com.br/receita/frango-com-legumes-no-vapor/"],
-    "jantar": ["🍲 Omelete de forno: https://www.tudogostoso.com.br/receita/277025-omelete-de-forno-fit.html"]
+    "jantar": ["🍲 Omelete de forno: https://www.tudogostoso.com.br/receita/277025-omelete-de-forno-fit.html"],
+    "lanche_noite": ["🥪 Sanduíche natural: https://www.receiteria.com.br/receita/sanduiche-natural-de-frango/"]
 }
 
 def enviar_motivacional( ):
@@ -137,6 +138,8 @@ def enviar_receita_do_dia():
         tipo = "almoco"
     elif hora == 18:
         tipo = "jantar"
+    elif hora == 22:
+        tipo = "lanche_noite"
 
     if tipo:
         mensagem = random.choice(receitas[tipo])
@@ -181,29 +184,68 @@ def loop_automacoes():
 
     while True:
         print("🔄 Ciclo automático em execução...")
+        start_time = time.time()
 
-        enviar_motivacional()
-        enviar_receita_do_dia()
-
+        # Notícias (a cada 30 minutos)
         random.shuffle(topicos)
         for topico in topicos:
             msg = buscar_noticias(topico)
             if msg:
                 enviar_mensagem(msg)
                 break
+        else:
+            enviar_mensagem("⚠️ Nenhuma notícia disponível no momento.")
 
+        # Cotações (intercaladas com as notícias)
         cot = buscar_cotacoes()
         if cot:
             enviar_mensagem(cot)
-
-        time.sleep(60)
+        else:
+            enviar_mensagem("⚠️ Não foi possível obter cotações de criptomoedas no momento.")
 
         metais = buscar_metais()
         if metais:
             enviar_mensagem(metais)
+        else:
+            enviar_mensagem("⚠️ Não foi possível obter cotações de metais no momento.")
 
-        time.sleep(1740)
+        cot_fiat = buscar_cotacoes_moedas_fiat()
+        if cot_fiat:
+            enviar_mensagem(cot_fiat)
+        else:
+            enviar_mensagem("⚠️ Não foi possível obter cotações de moedas fiduciárias no momento.")
+
+        # Mensagens motivacionais e receitas (com lógica de horário dentro das funções)
+        enviar_motivacional()
+        enviar_receita_do_dia()
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        sleep_time = 1800 - elapsed_time  # 30 minutes = 1800 seconds
+
+        if sleep_time > 0:
+            time.sleep(sleep_time)
 
 if __name__ == '__main__':
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=10000, debug=False, use_reloader=False)).start()
     threading.Thread(target=loop_automacoes).start()
+
+
+def buscar_cotacoes_moedas_fiat():
+    try:
+        url = "https://open.er-api.com/v6/latest/USD"
+        resp = requests.get(url, timeout=10)
+        print(f"DEBUG: Resposta ExchangeRate-API: Status {resp.status_code}, Body: {resp.text[:100]}...")
+        data = resp.json()
+        usd_to_brl = data["rates"]["BRL"]
+        usd_to_eur = data["rates"]["EUR"]
+        return (
+            "💵 <b>Cotações de Moedas</b>\n"
+            f"Dólar (USD): R${usd_to_brl:.2f}\n"
+            f"Euro (EUR): ${usd_to_eur:.2f} (em relação ao USD)"
+        )
+    except Exception as e:
+        print("Erro ao buscar cotações de moedas fiduciárias:", e)
+        return None
+
+
