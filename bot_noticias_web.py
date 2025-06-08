@@ -6,11 +6,18 @@ from datetime import datetime, timedelta
 from flask import Flask
 
 # === CHAVES FIXADAS ===
-TELEGRAM_TOKEN = '123456789:ABCdefGHIjklMNOpqrSTUvwxYZ1234567890'
-CHAT_ID = '-1001234567890'
+TELEGRAM_TOKEN = '8067274719:AAEWHOSwqquzP3qvhBKZryM7QfTMEAbMPhg'
+CHAT_ID = '-1002562674482'
 API_TUBE_KEY = 'api_live_TSGaZx9AKt5AVpWi5PWFAJMJPPIhUkCLP5gTfAQHbpiANT4hA4Mxvx'
 NEWSDATA_KEY = 'pub_2f53083927874e8bbe43b5a87755a2cd'
 METALS_API_KEY = '93d171ec531b8034b1f9d577912de823'
+
+# DEBUG: Verificando se as chaves foram carregadas corretamente
+print(f"DEBUG: TELEGRAM_TOKEN carregado: {TELEGRAM_TOKEN[:5]}...")
+print(f"DEBUG: CHAT_ID carregado: {CHAT_ID}")
+print(f"DEBUG: API_TUBE_KEY carregado: {API_TUBE_KEY[:5]}...")
+print(f"DEBUG: NEWSDATA_KEY carregado: {NEWSDATA_KEY[:5]}...")
+print(f"DEBUG: METALS_API_KEY carregado: {METALS_API_KEY[:5]}...")
 
 # === VARIÁVEIS DE CONTROLE ===
 ENVIADAS = set()
@@ -29,7 +36,8 @@ def enviar_mensagem(mensagem):
         url = f'https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage'
         data = {'chat_id': CHAT_ID, 'text': mensagem, 'parse_mode': 'HTML'}
         resp = requests.post(url, data=data, timeout=10)
-        print(f"✅ RESPOSTA TELEGRAM: {resp.status_code}")
+        print(f"✅ RESPOSTA TELEGRAM STATUS: {resp.status_code}")
+        print(f"✅ RESPOSTA TELEGRAM BODY: {resp.text}") # Adicionado para imprimir o corpo da resposta
     except Exception as e:
         print("❌ Erro ao enviar mensagem:", e)
 
@@ -144,8 +152,8 @@ def enviar_inicio():
     enviar_mensagem("🤖 Bot iniciado! Aqui está sua primeira dose de informação:")
 
     # Motivacional e Receita (independente da hora, só no início)
-    enviar_mensagem("💡 Motivação: " + random.choice(mensagens_motivacionais["bom_dia"]))
-    enviar_mensagem("🍽 Receita: " + random.choice(receitas["cafe"]))
+    enviar_mensagem("💡 Motivação: " + random.choice(mensagens_motivacionais["bom_dia"])[0]) # [0] para pegar a string da lista
+    enviar_mensagem("🍽 Receita: " + random.choice(receitas["cafe"])[0]) # [0] para pegar a string da lista
 
     # Notícia
     msg = buscar_noticias("inteligência artificial") or buscar_noticias("criptomoeda")
@@ -197,3 +205,4 @@ def loop_automacoes():
 if __name__ == '__main__':
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=10000, debug=False, use_reloader=False)).start()
     threading.Thread(target=loop_automacoes).start()
+
