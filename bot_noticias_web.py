@@ -1,4 +1,3 @@
-
 import requests
 import time
 import random
@@ -7,6 +6,7 @@ import os
 from datetime import datetime, timedelta
 from flask import Flask
 
+# === Configurações ===
 TELEGRAM_TOKEN = '8067274719:AAEWHOSwqquzP3qvhBKZryM7QfTMEAbMPhg'
 CHAT_ID = '-1002562674482'
 API_TUBE_KEY = 'api_live_TSGaZx9AKt5AVpWi5PWFAJMJPPIhUkCLP5gTfAQHbpiANT4hA4Mxvx'
@@ -14,6 +14,9 @@ NEWSDATA_KEY = 'pub_2f53083927874e8bbe43b5a87755a2cd'
 METALS_API_KEY = '93d171ec531b8034b1f9d577912de823'
 
 ENVIADAS = set()
+ULTIMO_TEMA = -1
+
+app = Flask(__name__)
 
 mensagens_bom_dia = [
     "Bom dia! Descubra hoje como a IA e o mundo cripto estão mudando o mundo! 👉 https://t.me/rafaelsheikIA",
@@ -28,155 +31,133 @@ mensagens_boa_noite = [
     "Que sua noite seja tranquila e sua mente cheia de ideias brilhantes! 👉 https://t.me/rafaelsheikIA"
 ]
 
-conteudos_digitais = [
-    "Conheça essa ferramenta incrível de IA para designers: https://www.canva.com/",
-    "Curso gratuito de Python com certificado: https://www.cursoemvideo.com/",
-    "Como criar uma renda online com afiliados: https://hotmart.com/",
-    "Ferramentas para automatizar seu marketing: https://zapier.com/"
-]
+receitas = {
+    "cafe": [
+        "🥣 Receita Saudável de Café da Manhã\nSmoothie de banana com aveia 👉 https://www.receiteria.com.br/receita/smoothie-de-banana-com-aveia/",
+        "🍞 Panqueca de banana fit sem farinha 👉 https://www.tudogostoso.com.br/receita/176404-panqueca-de-banana-fit.html"
+    ],
+    "almoco": [
+        "🍛 Almoço Saudável\nFrango grelhado com legumes 👉 https://www.receiteria.com.br/receita/frango-com-legumes-no-vapor/",
+        "🥗 Salada completa com grão-de-bico 👉 https://panelinha.com.br/receita/salada-de-grao-de-bico"
+    ],
+    "jantar": [
+        "🍽 Jantar Leve\nOmelete de forno com legumes 👉 https://www.tudogostoso.com.br/receita/277025-omelete-de-forno-fit.html",
+        "🥪 Sanduíche natural com frango e cenoura 👉 https://www.receiteria.com.br/receita/sanduiche-natural-de-frango/"
+    ]
+}
 
-app = Flask(__name__)
+temas = ["inteligência artificial", "criptomoeda", "tecnologia", "notícia mundial"]
 
 @app.route('/')
 def home():
-    return "Bot de Notícias Online"
+    return "Bot de Notícias está online!"
 
-@app.route('/status')
-def status():
-    return {"status": "online", "enviadas": len(ENVIADAS)}
-
-def enviar_mensagem(mensagem):
+def enviar_mensagem(msg):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    data = {'chat_id': CHAT_ID, 'text': msg, 'parse_mode': 'HTML'}
     try:
-        url = f'https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage'
-        data = {'chat_id': CHAT_ID, 'text': mensagem, 'parse_mode': 'HTML'}
         requests.post(url, data=data, timeout=10)
-        print("Mensagem enviada:", mensagem)
+        print("Mensagem enviada:", msg)
     except Exception as e:
-        print(f"Erro ao enviar mensagem: {e}")
+        print("Erro ao enviar mensagem:", e)
 
 def buscar_noticias(topico):
-    noticias = []
-    hoje = datetime.utcnow().date()
-    ontem = hoje - timedelta(days=1)
+    ontem = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
     urls = [
-        f'https://newsdata.io/api/1/news?apikey={API_TUBE_KEY}&q={topico}&language=pt&from_date={ontem}',
-        f'https://newsdata.io/api/1/news?apikey={NEWSDATA_KEY}&q={topico}&language=pt&from_date={ontem}'
+        f"https://newsdata.io/api/1/news?apikey={API_TUBE_KEY}&q={topico}&language=pt&from_date={ontem}",
+        f"https://newsdata.io/api/1/news?apikey={NEWSDATA_KEY}&q={topico}&language=pt&from_date={ontem}"
     ]
     for url in urls:
         try:
-            resposta = requests.get(url, timeout=10)
-            if resposta.status_code == 200:
-                noticias += resposta.json().get('results', [])
+            r = requests.get(url, timeout=10)
+            data = r.json()
+            for noticia in data.get("results", []):
+                link = noticia.get("link") or noticia.get("url")
+                if link and link not in ENVIADAS:
+                    ENVIADAS.add(link)
+                    titulo = noticia.get("title", "Sem título")
+                    return f"🗞 <b>{titulo}</b>\n{link}"
         except Exception as e:
-            print(f"Erro ao buscar notícias: {e}")
-    return noticias
-
-def nova_noticia(lista):
-    hoje = datetime.utcnow().date()
-    for noticia in lista:
-        data_pub = noticia.get("pubDate") or noticia.get("published_at") or noticia.get("publishedAt")
-        url = noticia.get("url") or noticia.get("link")
-        titulo = noticia.get("title", "Sem título")
-        if data_pub:
-            try:
-                data_noticia = datetime.strptime(data_pub[:10], "%Y-%m-%d").date()
-                if (hoje - data_noticia).days > 1:
-                    continue
-            except:
-                continue
-        if url and url not in ENVIADAS:
-            ENVIADAS.add(url)
-            print("Notícia nova:", titulo)
-            return f"<b>{titulo}</b>\n{url}"
+            print("Erro ao buscar notícia:", e)
     return None
 
-def buscar_cotacoes():
+def buscar_ouro_prata():
+    ontem = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+    try:
+        url = f"https://metals-api.com/api/{ontem}?access_key={METALS_API_KEY}&base=USD&symbols=XAU,XAG"
+        r = requests.get(url, timeout=10)
+        data = r.json()
+        ouro = 1 / data['rates']['XAU']
+        prata = 1 / data['rates']['XAG']
+        return f"💰 Metais Preciosos (ontem {ontem})\nOuro: ${ouro:.2f}/oz\nPrata: ${prata:.2f}/oz"
+    except Exception as e:
+        print("Erro metais:", e)
+        return None
+
+def buscar_cripto():
     try:
         url = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd,brl,eur'
-        r = requests.get(url, timeout=10)
-        data = r.json()
-        btc = data['bitcoin']
-        eth = data['ethereum']
-        dolar = btc['usd'] / btc['brl']
-        euro = btc['eur'] / btc['brl']
-        msg = (
-            f"COTAÇÕES ATUAIS\n"
+        r = requests.get(url, timeout=10).json()
+        btc, eth = r['bitcoin'], r['ethereum']
+        return (
+            f"₿ Cotações Cripto\n"
             f"Bitcoin: ${btc['usd']:,} | R${btc['brl']:,}\n"
-            f"Ethereum: ${eth['usd']:,} | R${eth['brl']:,}\n"
-            f"Dólar: R${dolar:.2f} | Euro: R${euro:.2f}"
+            f"Ethereum: ${eth['usd']:,} | R${eth['brl']:,}"
         )
-        return msg
     except Exception as e:
-        print(f"Erro cotação: {e}")
+        print("Erro cripto:", e)
         return None
-
-def buscar_ouro_prata():
-    try:
-        ontem = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
-        url = (
-            f'https://metals-api.com/api/{ontem}'
-            f'?access_key={METALS_API_KEY}&base=USD&symbols=XAU,XAG'
-        )
-        r = requests.get(url, timeout=10)
-        data = r.json()
-        if not data.get('success', False):
-            print("Erro ao buscar metais:", data.get('error', {}))
-            return None
-        ouro = data['rates']['XAU']
-        prata = data['rates']['XAG']
-        ouro_valor = 1 / ouro
-        prata_valor = 1 / prata
-        msg = (
-            f"Metais Preciosos (cotação de {ontem})\n"
-            f"Ouro (XAU): ${ouro_valor:.2f} por onça troy\n"
-            f"Prata (XAG): ${prata_valor:.2f} por onça troy"
-        )
-        return msg
-    except Exception as e:
-        print(f"Erro ao buscar metais: {e}")
-        return None
-
-def enviar_receita(tipo):
-    receitas = {
-        "cafe": [
-            "<b>Receita Saudável de Café da Manhã</b>\nSmoothie de banana com aveia e chia.\n👉 https://www.receiteria.com.br/receita/smoothie-de-banana-com-aveia/",
-            "Panqueca de banana fit sem farinha!\n👉 https://www.tudogostoso.com.br/receita/176404-panqueca-de-banana-fit.html"
-        ],
-        "almoco": [
-            "<b>Almoço Saudável</b>\nFrango grelhado com legumes no vapor.\n👉 https://www.receiteria.com.br/receita/frango-com-legumes-no-vapor/",
-            "Salada completa com grão-de-bico.\n👉 https://panelinha.com.br/receita/salada-de-grao-de-bico"
-        ],
-        "jantar": [
-            "<b>Jantar Leve</b>\nOmelete de forno com legumes.\n👉 https://www.tudogostoso.com.br/receita/277025-omelete-de-forno-fit.html",
-            "Sanduíche natural com frango e cenoura.\n👉 https://www.receiteria.com.br/receita/sanduiche-natural-de-frango/"
-        ]
-    }
-    if tipo in receitas:
-        mensagem = random.choice(receitas[tipo])
-        enviar_mensagem(mensagem)
 
 def enviar_motivacional():
     hora = datetime.now().hour
     if 6 <= hora < 12:
-        mensagem = random.choice(mensagens_bom_dia)
+        msg = random.choice(mensagens_bom_dia)
     elif 12 <= hora < 18:
-        mensagem = random.choice(mensagens_boa_tarde)
+        msg = random.choice(mensagens_boa_tarde)
     else:
-        mensagem = random.choice(mensagens_boa_noite)
-    enviar_mensagem(mensagem)
+        msg = random.choice(mensagens_boa_noite)
+    enviar_mensagem(msg)
 
-def enviar_conteudo_digital():
-    mensagem = random.choice(conteudos_digitais)
-    enviar_mensagem(mensagem)
+def enviar_receita():
+    hora = datetime.now().hour
+    if 6 <= hora < 12:
+        tipo = "cafe"
+    elif 12 <= hora < 18:
+        tipo = "almoco"
+    else:
+        tipo = "jantar"
+    enviar_mensagem(random.choice(receitas[tipo]))
 
-def iniciar_bot():
-    enviado_cafe = False
-    enviado_almoco = False
-    enviado_jantar = False
-    ultima_cotacao = datetime.now() - timedelta(hours=1)
-    ultima_noticia = datetime.now() - timedelta(minutes=30)
-    ultima_motivacional = datetime.now() - timedelta(hours=2)
+def ciclo_bot():
+    global ULTIMO_TEMA
+    while True:
+        agora = datetime.now()
+        minuto = agora.minute
 
-if __name__ == '__main__':
-    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=os.environ.get('PORT', 5000), debug=True, use_reloader=False)).start()
-    iniciar_bot()
+        # Notícias
+        ULTIMO_TEMA = (ULTIMO_TEMA + 1) % len(temas)
+        noticia = buscar_noticias(temas[ULTIMO_TEMA])
+        if noticia:
+            enviar_mensagem(noticia)
+        else:
+            print("Nenhuma notícia nova.")
+
+        # Cotação alternada
+        if minuto % 60 < 30:
+            cotacao = buscar_cripto()
+        else:
+            cotacao = buscar_ouro_prata()
+        if cotacao:
+            enviar_mensagem(cotacao)
+
+        # Motivacional e receitas em horários certos
+        if agora.hour in [7, 12, 18] and agora.minute < 2:
+            enviar_receita()
+        if agora.hour in [8, 13, 21] and agora.minute < 2:
+            enviar_motivacional()
+
+        time.sleep(1800)  # Espera 30 minutos
+
+if __name__ == "__main__":
+    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False, use_reloader=False)).start()
+    ciclo_bot()
