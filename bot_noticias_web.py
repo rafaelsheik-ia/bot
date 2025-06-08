@@ -140,14 +140,31 @@ def enviar_receita_do_dia():
 
 def loop_automacoes():
     topicos = ["inteligência artificial", "criptomoeda", "tecnologia", "notícia mundial"]
+
+    # 🔥 Enviar algo logo ao iniciar (força uma mensagem ao vivo)
+    enviar_mensagem("🤖 Bot de notícias iniciado e operando!")
+    
+    msg = buscar_noticias("inteligência artificial") or buscar_noticias("criptomoeda")
+    if msg:
+        enviar_mensagem(msg)
+    else:
+        enviar_mensagem("⚠️ Nenhuma notícia disponível agora.")
+
+    cot = buscar_cotacoes()
+    if cot:
+        enviar_mensagem(cot)
+
+    metais = buscar_metais()
+    if metais:
+        enviar_mensagem(metais)
+
+    # 🔁 Entra no loop normal após o envio inicial
     while True:
         print("🔄 Executando automações...")
 
-        # Mensagens motivacionais e receitas
         enviar_motivacional()
         enviar_receita_do_dia()
 
-        # Notícias (uma por ciclo)
         random.shuffle(topicos)
         for topico in topicos:
             msg = buscar_noticias(topico)
@@ -155,19 +172,18 @@ def loop_automacoes():
                 enviar_mensagem(msg)
                 break
 
-        # Cotação de criptomoedas
         cot = buscar_cotacoes()
         if cot:
             enviar_mensagem(cot)
 
-        # Espera 1 minuto e envia metais
         time.sleep(60)
+
         metais = buscar_metais()
         if metais:
             enviar_mensagem(metais)
 
-        # Espera até o próximo ciclo (30 minutos no total)
         time.sleep(1740)
+
 
 if __name__ == '__main__':
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=10000, debug=False, use_reloader=False)).start()
