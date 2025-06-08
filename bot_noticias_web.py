@@ -70,7 +70,16 @@ def buscar_noticias_newsdata(topico):
     return []
 
 def nova_noticia(lista):
+    hoje = datetime.utcnow().date()
     for noticia in lista:
+        data_pub = noticia.get("pubDate") or noticia.get("published_at") or noticia.get("publishedAt")
+        try:
+            if data_pub:
+                data_noticia = datetime.strptime(data_pub[:10], "%Y-%m-%d").date()
+                if data_noticia != hoje:
+                    continue
+        except:
+            continue
         url = noticia.get('url') or noticia.get('link')
         if url and url not in ENVIADAS:
             ENVIADAS.add(url)
@@ -175,16 +184,16 @@ if __name__ == "__main__":
     while True:
         agora = datetime.now()
 
-        if agora.hour == 8 and not enviado_cafe:
+        if agora.hour == 8 and agora.minute == 0 and not enviado_cafe:
             enviar_receita("cafe")
             enviado_cafe = True
-        elif agora.hour == 12 and not enviado_almoco:
+        elif agora.hour == 12 and agora.minute == 0 and not enviado_almoco:
             enviar_receita("almoco")
             enviado_almoco = True
-        elif agora.hour == 18 and not enviado_jantar:
+        elif agora.hour == 18 and agora.minute == 0 and not enviado_jantar:
             enviar_receita("jantar")
             enviado_jantar = True
-        elif agora.hour == 0:
+        elif agora.hour == 0 and agora.minute == 0:
             enviado_cafe = enviado_almoco = enviado_jantar = False
 
         if agora - ultima_cotacao >= timedelta(hours=1):
