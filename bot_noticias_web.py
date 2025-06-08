@@ -42,25 +42,20 @@ def enviar_mensagem(mensagem):
         print("❌ Erro ao enviar mensagem:", e)
 
 def buscar_noticias(topico):
-    for i in range(7):
-        data_busca = (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d")
-        urls = [
-            f'https://newsdata.io/api/1/news?apikey={API_TUBE_KEY}&q={topico}&language=pt&from_date={data_busca}',
-            f'https://newsdata.io/api/1/news?apikey={NEWSDATA_KEY}&q={topico}&language=pt&from_date={data_busca}'
-        ]
-        for url in urls:
-            try:
-                resp = requests.get(url, timeout=10 )
-                print(f"DEBUG: Resposta News API ({url[:30]}...): Status {resp.status_code}, Body: {resp.text[:100]}...")
-                noticias = resp.json().get('results', [])
-                for noticia in noticias:
-                    link = noticia.get('link') or noticia.get('url')
-                    titulo = noticia.get('title', 'Sem título')
-                    if link and link not in ENVIADAS:
-                        ENVIADAS.add(link)
-                        return f"🗞 <b>{titulo}</b>\n{link}"
-            except Exception as e:
-                print("Erro ao buscar notícia:", e)
+    # Removido o filtro de data para buscar as notícias mais recentes
+    url = f'https://newsdata.io/api/1/news?apikey={NEWSDATA_KEY}&q={topico}&language=pt'
+    try:
+        resp = requests.get(url, timeout=10 )
+        print(f"DEBUG: Resposta News API ({url[:30]}...): Status {resp.status_code}, Body: {resp.text[:100]}...")
+        noticias = resp.json().get("results", [])
+        for noticia in noticias:
+            link = noticia.get("link") or noticia.get("url")
+            titulo = noticia.get("title", "Sem título")
+            if link and link not in ENVIADAS:
+                ENVIADAS.add(link)
+                return f"🗞 <b>{titulo}</b>\n{link}"
+    except Exception as e:
+        print("Erro ao buscar notícia:", e)
     return None
 
 def buscar_cotacoes():
@@ -81,16 +76,14 @@ def buscar_cotacoes():
 
 def buscar_metais():
     try:
-        # Ajustado para buscar dados de 48 horas atrás
-        data_metais = (datetime.utcnow() - timedelta(days=2)).strftime("%Y-%m-%d")
-        url = f'https://metals-api.com/api/{data_metais}?access_key={METALS_API_KEY}&base=USD&symbols=XAU,XAG'
+        url = f'https://metals-api.com/api/latest?access_key={METALS_API_KEY}&base=USD&symbols=XAU,XAG'
         r = requests.get(url )
         print(f"DEBUG: Resposta Metals API: Status {r.status_code}, Body: {r.text[:100]}...")
         data = r.json()
         ouro = data['rates']['XAU']
         prata = data['rates']['XAG']
         return (
-            f"🥇 <b>Metais Preciosos ({data_metais})</b>\n"
+            f"🥇 <b>Metais Preciosos</b>\n"
             f"Ouro (XAU): ${1 / ouro:.2f} por onça\n"
             f"Prata (XAG): ${1 / prata:.2f} por onça"
         )
