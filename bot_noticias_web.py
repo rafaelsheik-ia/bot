@@ -2,19 +2,20 @@ import requests
 import time
 import threading
 import random
-import os
 from datetime import datetime, timedelta
 from flask import Flask
 
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-CHAT_ID = os.getenv('CHAT_ID')
-API_TUBE_KEY = os.getenv('API_TUBE_KEY')
-NEWSDATA_KEY = os.getenv('NEWSDATA_KEY')
-METALS_API_KEY = os.getenv('METALS_API_KEY')
+# === CHAVES FIXADAS ===
+TELEGRAM_TOKEN = '123456789:ABCdefGHIjklMNOpqrSTUvwxYZ1234567890'
+CHAT_ID = '-1001234567890'
+API_TUBE_KEY = 'api_live_TSGaZx9AKt5AVpWi5PWFAJMJPPIhUkCLP5gTfAQHbpiANT4hA4Mxvx'
+NEWSDATA_KEY = 'pub_2f53083927874e8bbe43b5a87755a2cd'
+METALS_API_KEY = '93d171ec531b8034b1f9d577912de823'
 
+# === VARIÁVEIS DE CONTROLE ===
 ENVIADAS = set()
-ULTIMA_MOTIVACIONAL = None
-ULTIMA_RECEITA = None
+ULTIMA_MOTIVACIONAL = (-1, None)
+ULTIMA_RECEITA = (-1, None)
 
 app = Flask(__name__)
 
@@ -99,6 +100,7 @@ def enviar_motivacional():
     global ULTIMA_MOTIVACIONAL
     hora = datetime.now().hour
     hoje = datetime.now().date()
+
     if ULTIMA_MOTIVACIONAL == (hora, hoje):
         return
 
@@ -119,6 +121,7 @@ def enviar_receita_do_dia():
     global ULTIMA_RECEITA
     hora = datetime.now().hour
     hoje = datetime.now().date()
+
     if ULTIMA_RECEITA == (hora, hoje):
         return
 
@@ -152,12 +155,12 @@ def loop_automacoes():
                 enviar_mensagem(msg)
                 break
 
-        # Cotação de criptomoedas/moedas
+        # Cotação de criptomoedas
         cot = buscar_cotacoes()
         if cot:
             enviar_mensagem(cot)
 
-        # Esperar 1 minuto e enviar metais
+        # Espera 1 minuto e envia metais
         time.sleep(60)
         metais = buscar_metais()
         if metais:
@@ -167,5 +170,5 @@ def loop_automacoes():
         time.sleep(1740)
 
 if __name__ == '__main__':
-    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)), debug=False, use_reloader=False)).start()
+    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=10000, debug=False, use_reloader=False)).start()
     threading.Thread(target=loop_automacoes).start()
