@@ -29,8 +29,6 @@ mensagens_boa_noite = [
     "Que sua noite seja tranquila e sua mente cheia de ideias brilhantes! 👉 https://t.me/rafaelsheikIA"
 ]
 
-
-
 conteudos_digitais = [
     "Conheça essa ferramenta incrível de IA para designers: https://www.canva.com/",
     "Curso gratuito de Python com certificado: https://www.cursoemvideo.com/",
@@ -90,7 +88,7 @@ def nova_noticia(lista):
         if url and url not in ENVIADAS:
             ENVIADAS.add(url)
             print("Notícia nova:", titulo)
-            return f"""🗞 <b>{titulo}</b>\n{url}"""
+            return f"<b>{titulo}</b>\\n{url}"
     return None
 
 def buscar_cotacoes():
@@ -102,7 +100,7 @@ def buscar_cotacoes():
         eth = data['ethereum']
         dolar = btc['usd'] / btc['brl']
         euro = btc['eur'] / btc['brl']
-        msg = f"""COTAÇÕES ATUAIS\nBitcoin: ${btc["usd"]:,} | R${btc["brl"]:,}\nEthereum: ${eth["usd"]:,} | R${eth["brl"]:,}\nDólar: R${dolar:.2f} | Euro: R${euro:.2f}"""
+        msg = f"COTAÇÕES ATUAIS\\nBitcoin: ${btc['usd']:,} | R${btc['brl']:,}\\nEthereum: ${eth['usd']:,} | R${eth['brl']:,}\\nDólar: R${dolar:.2f} | Euro: R${euro:.2f}"
         return msg
     except Exception as e:
         print(f"Erro cotação: {e}")
@@ -111,10 +109,7 @@ def buscar_cotacoes():
 def buscar_ouro_prata():
     try:
         ontem = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
-        url = (
-            f'https://metals-api.com/api/{ontem}'
-            f'?access_key={METALS_API_KEY}&base=USD&symbols=XAU,XAG'
-        )
+        url = f'https://metals-api.com/api/{ontem}?access_key={METALS_API_KEY}&base=USD&symbols=XAU,XAG'
         r = requests.get(url, timeout=10)
         data = r.json()
         if not data.get('success', False):
@@ -125,9 +120,9 @@ def buscar_ouro_prata():
         ouro_valor = 1 / ouro
         prata_valor = 1 / prata
         msg = (
-f"""Metais Preciosos (cotação de {ontem})\n"
-f"""Ouro (XAU): ${ouro_valor:.2f} por onça troy\n"
-f"""Prata (XAG): ${prata_valor:.2f} por onça troy"""
+            f"Metais Preciosos (cotação de {ontem})\\n"
+            f"Ouro (XAU): ${ouro_valor:.2f} por onça troy\\n"
+            f"Prata (XAG): ${prata_valor:.2f} por onça troy"
         )
         return msg
     except Exception as e:
@@ -137,25 +132,16 @@ f"""Prata (XAG): ${prata_valor:.2f} por onça troy"""
 def enviar_receita(tipo):
     receitas = {
         "cafe": [
-            "🥣 <b>Receita Saudável de Café da Manhã</b>
-Smoothie de banana com aveia e chia.
-👉 https://www.receiteria.com.br/receita/smoothie-de-banana-com-aveia/",
-            "🍞 Panqueca de banana fit sem farinha!
-👉 https://www.tudogostoso.com.br/receita/176404-panqueca-de-banana-fit.html"
+            "<b>Receita Saudável de Café da Manhã</b>\\nSmoothie de banana com aveia e chia.\\n👉 https://www.receiteria.com.br/receita/smoothie-de-banana-com-aveia/",
+            "Panqueca de banana fit sem farinha!\\n👉 https://www.tudogostoso.com.br/receita/176404-panqueca-de-banana-fit.html"
         ],
         "almoco": [
-            "🍛 <b>Almoço Saudável</b>
-Frango grelhado com legumes no vapor.
-👉 https://www.receiteria.com.br/receita/frango-com-legumes-no-vapor/",
-            "🥗 Salada completa com grão-de-bico.
-👉 https://panelinha.com.br/receita/salada-de-grao-de-bico"
+            "<b>Almoço Saudável</b>\\nFrango grelhado com legumes no vapor.\\n👉 https://www.receiteria.com.br/receita/frango-com-legumes-no-vapor/",
+            "Salada completa com grão-de-bico.\\n👉 https://panelinha.com.br/receita/salada-de-grao-de-bico"
         ],
         "jantar": [
-            "🍽 <b>Jantar Leve</b>
-Omelete de forno com legumes.
-👉 https://www.tudogostoso.com.br/receita/277025-omelete-de-forno-fit.html",
-            "🥪 Sanduíche natural com frango e cenoura.
-👉 https://www.receiteria.com.br/receita/sanduiche-natural-de-frango/"
+            "<b>Jantar Leve</b>\\nOmelete de forno com legumes.\\n👉 https://www.tudogostoso.com.br/receita/277025-omelete-de-forno-fit.html",
+            "Sanduíche natural com frango e cenoura.\\n👉 https://www.receiteria.com.br/receita/sanduiche-natural-de-frango/"
         ]
     }
     if tipo in receitas:
@@ -184,9 +170,13 @@ def iniciar_bot():
     ultima_noticia = datetime.now() - timedelta(minutes=30)
     ultima_motivacional = datetime.now() - timedelta(hours=2)
 
-
-
 if __name__ == '__main__':
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=os.environ.get('PORT', 5000), debug=True, use_reloader=False)).start()
     iniciar_bot()
+'''
 
+# Salvar o arquivo
+file_path = Path("/mnt/data/bot_noticias_web_corrigido.py")
+file_path.write_text(codigo_corrigido)
+
+file_path.name
