@@ -17,22 +17,23 @@ METALS_API_KEY = '93d171ec531b8034b1f9d577912de823'
 ENVIADAS = set()
 
 mensagens_bom_dia = [
-    "🌞 Bom dia! Descubra hoje como a IA e o mundo cripto estão mudando o mundo!
-👉 https://t.me/rafaelsheikIA",
-    "🧠 Comece o dia aprendendo algo novo com as maiores inovações!
-👉 https://t.me/rafaelsheikIA"
+    "🌞 Bom dia! Descubra hoje como a IA e o mundo cripto estão mudando o mundo! 👉 https://t.me/rafaelsheikIA",
+    "🧠 Comece o dia aprendendo algo novo com as maiores inovações! 👉 https://t.me/rafaelsheikIA"
 ]
 mensagens_boa_tarde = [
-    "🌤 Boa tarde! Mantenha o foco nos seus objetivos com tecnologia e liberdade financeira!
-👉 https://t.me/rafaelsheikIA",
-    "💻 Que sua tarde seja tão produtiva quanto um algoritmo bem treinado!
-👉 https://t.me/rafaelsheikIA"
+    "🌤 Boa tarde! Mantenha o foco nos seus objetivos com tecnologia e liberdade financeira! 👉 https://t.me/rafaelsheikIA",
+    "💻 Que sua tarde seja tão produtiva quanto um algoritmo bem treinado! 👉 https://t.me/rafaelsheikIA"
 ]
 mensagens_boa_noite = [
-    "🌙 Boa noite! Enquanto o mundo dorme, a inovação não para. Fique por dentro!
-👉 https://t.me/rafaelsheikIA",
-    "✨ Que sua noite seja tranquila e sua mente cheia de ideias brilhantes!
-👉 https://t.me/rafaelsheikIA"
+    "🌙 Boa noite! Enquanto o mundo dorme, a inovação não para. Fique por dentro! 👉 https://t.me/rafaelsheikIA",
+    "✨ Que sua noite seja tranquila e sua mente cheia de ideias brilhantes! 👉 https://t.me/rafaelsheikIA"
+]
+
+mensagens_bom_dia = [
+]
+mensagens_boa_tarde = [
+]
+mensagens_boa_noite = [
 ]
 
 conteudos_digitais = [
@@ -192,36 +193,9 @@ def enviar_motivacional():
     hora = datetime.now().hour
     if 6 <= hora < 12:
         mensagem = random.choice(mensagens_bom_dia)
-    elif 12 <= hora < 18:
         mensagem = random.choice(mensagens_boa_tarde)
-    elif 18 <= hora < 24:
         mensagem = random.choice(mensagens_boa_noite)
-    else:
         mensagem = random.choice(mensagens_bom_dia)
-    enviar_mensagem(mensagem)
-
-def enviar_conteudo_digital():
-    msg = random.choice(conteudos_digitais)
-    enviar_mensagem("💡 <b>Dica Digital do Dia</b>
-" + msg)
-
-def run_flask():
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
-
-if __name__ == "__main__":
-    flask_thread = threading.Thread(target=run_flask)
-    flask_thread.daemon = True
-    flask_thread.start()
-
-    ultima_cotacao = datetime.now() - timedelta(hours=1)
-    ultima_noticia = datetime.now() - timedelta(minutes=30)
-    ultima_motivacional = datetime.now() - timedelta(hours=2)
-
-    enviado_cafe = False
-    enviado_almoco = False
-    enviado_jantar = False
-
     noticia_topicos = ['ai', 'cryptocurrency', 'technology']
     indice_topico = 0
 
