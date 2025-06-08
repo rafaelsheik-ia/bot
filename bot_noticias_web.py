@@ -17,30 +17,25 @@ METALS_API_KEY = '93d171ec531b8034b1f9d577912de823'
 ENVIADAS = set()
 
 mensagens_bom_dia = [
-    "🌞 Bom dia! Descubra hoje como a IA e o mundo cripto estão mudando o mundo! 👉 https://t.me/rafaelsheikIA",
-    "🧠 Comece o dia aprendendo algo novo com as maiores inovações! 👉 https://t.me/rafaelsheikIA"
+    "Bom dia! Descubra hoje como a IA e o mundo cripto estão mudando o mundo! 👉 https://t.me/rafaelsheikIA",
+    "Comece o dia aprendendo algo novo com as maiores inovações! 👉 https://t.me/rafaelsheikIA"
 ]
 mensagens_boa_tarde = [
-    "🌤 Boa tarde! Mantenha o foco nos seus objetivos com tecnologia e liberdade financeira! 👉 https://t.me/rafaelsheikIA",
-    "💻 Que sua tarde seja tão produtiva quanto um algoritmo bem treinado! 👉 https://t.me/rafaelsheikIA"
+    "Boa tarde! Mantenha o foco nos seus objetivos com tecnologia e liberdade financeira! 👉 https://t.me/rafaelsheikIA",
+    "Que sua tarde seja tão produtiva quanto um algoritmo bem treinado! 👉 https://t.me/rafaelsheikIA"
 ]
 mensagens_boa_noite = [
-    "🌙 Boa noite! Enquanto o mundo dorme, a inovação não para. Fique por dentro! 👉 https://t.me/rafaelsheikIA",
-    "✨ Que sua noite seja tranquila e sua mente cheia de ideias brilhantes! 👉 https://t.me/rafaelsheikIA"
+    "Boa noite! Enquanto o mundo dorme, a inovação não para. Fique por dentro! 👉 https://t.me/rafaelsheikIA",
+    "Que sua noite seja tranquila e sua mente cheia de ideias brilhantes! 👉 https://t.me/rafaelsheikIA"
 ]
 
-mensagens_bom_dia = [
-]
-mensagens_boa_tarde = [
-]
-mensagens_boa_noite = [
-]
+
 
 conteudos_digitais = [
-    "🛠 Conheça essa ferramenta incrível de IA para designers: https://www.canva.com/",
-    "📚 Curso gratuito de Python com certificado: https://www.cursoemvideo.com/",
-    "📌 Como criar uma renda online com afiliados: https://hotmart.com/",
-    "🚀 Ferramentas para automatizar seu marketing: https://zapier.com/"
+    "Conheça essa ferramenta incrível de IA para designers: https://www.canva.com/",
+    "Curso gratuito de Python com certificado: https://www.cursoemvideo.com/",
+    "Como criar uma renda online com afiliados: https://hotmart.com/",
+    "Ferramentas para automatizar seu marketing: https://zapier.com/"
 ]
 
 app = Flask(__name__)
@@ -95,8 +90,7 @@ def nova_noticia(lista):
         if url and url not in ENVIADAS:
             ENVIADAS.add(url)
             print("Notícia nova:", titulo)
-return f"""🗞 <b>{titulo}</b>\n{url}"""
-{url}"
+            return f"""🗞 <b>{titulo}</b>\n{url}"""
     return None
 
 def buscar_cotacoes():
@@ -108,15 +102,7 @@ def buscar_cotacoes():
         eth = data['ethereum']
         dolar = btc['usd'] / btc['brl']
         euro = btc['eur'] / btc['brl']
-        msg = (
-f"""💸 <b>COTAÇÕES ATUAIS</b>\n"""
-"
-f"""🪙 Bitcoin: ${btc["usd"]:,} | R${btc["brl"]:,}\n"""
-"
-f"""⛓ Ethereum: ${eth["usd"]:,} | R${eth["brl"]:,}\n"""
-"
-f"""💵 Dólar: R${dolar:.2f} | 💶 Euro: R${euro:.2f}"""
-        )
+        msg = f"""COTAÇÕES ATUAIS\nBitcoin: ${btc["usd"]:,} | R${btc["brl"]:,}\nEthereum: ${eth["usd"]:,} | R${eth["brl"]:,}\nDólar: R${dolar:.2f} | Euro: R${euro:.2f}"""
         return msg
     except Exception as e:
         print(f"Erro cotação: {e}")
@@ -136,25 +122,12 @@ def buscar_ouro_prata():
             return None
         ouro = data['rates']['XAU']
         prata = data['rates']['XAG']
+        ouro_valor = 1 / ouro
+        prata_valor = 1 / prata
         msg = (
-f"""🥇 <b>Metais Preciosos (cotação de {ontem})</b>\n"""
-"
-f"""💰 Ouro (XAU): ${1 / ouro:.2f} por onça troy\n"""
-"
-            f"🥈 Prata (XAG): ${1 / prata:.2f} por onça troy"
-        )
-        return msg
-    except Exception as e:
-        print(f"Erro ao buscar metais: {e}")
-        return None
-        ouro = data['rates']['XAU']
-        prata = data['rates']['XAG']
-        msg = (
-f"""🥇 <b>Metais Preciosos</b>\n"""
-"
-f"""💰 Ouro (XAU): R${ouro:.2f} por onça troy\n"""
-"
-            f"🥈 Prata (XAG): R${prata:.2f} por onça troy"
+f"""Metais Preciosos (cotação de {ontem})\n"
+f"""Ouro (XAU): ${ouro_valor:.2f} por onça troy\n"
+f"""Prata (XAG): ${prata_valor:.2f} por onça troy"""
         )
         return msg
     except Exception as e:
@@ -193,54 +166,27 @@ def enviar_motivacional():
     hora = datetime.now().hour
     if 6 <= hora < 12:
         mensagem = random.choice(mensagens_bom_dia)
+    elif 12 <= hora < 18:
         mensagem = random.choice(mensagens_boa_tarde)
+    else:
         mensagem = random.choice(mensagens_boa_noite)
-        mensagem = random.choice(mensagens_bom_dia)
-    noticia_topicos = ['ai', 'cryptocurrency', 'technology']
-    indice_topico = 0
+    enviar_mensagem(mensagem)
 
-    while True:
-        agora = datetime.now()
+def enviar_conteudo_digital():
+    mensagem = random.choice(conteudos_digitais)
+    enviar_mensagem(mensagem)
 
-        if agora.hour == 8 and agora.minute == 0 and not enviado_cafe:
-            threading.Thread(target=enviar_receita, args=("cafe",)).start()
-            enviado_cafe = True
-        elif agora.hour == 12 and agora.minute == 0 and not enviado_almoco:
-            threading.Thread(target=enviar_receita, args=("almoco",)).start()
-            enviado_almoco = True
-        elif agora.hour == 18 and agora.minute == 0 and not enviado_jantar:
-            threading.Thread(target=enviar_receita, args=("jantar",)).start()
-            enviado_jantar = True
-        elif agora.hour == 0 and agora.minute == 0:
-            enviado_cafe = enviado_almoco = enviado_jantar = False
+def iniciar_bot():
+    enviado_cafe = False
+    enviado_almoco = False
+    enviado_jantar = False
+    ultima_cotacao = datetime.now() - timedelta(hours=1)
+    ultima_noticia = datetime.now() - timedelta(minutes=30)
+    ultima_motivacional = datetime.now() - timedelta(hours=2)
 
-        if agora - ultima_cotacao >= timedelta(hours=1):
-            threading.Thread(target=lambda: enviar_mensagem(buscar_cotacoes() or "")).start()
-            threading.Thread(target=lambda: enviar_mensagem(buscar_ouro_prata() or "")).start()
-            ultima_cotacao = agora
 
-        if agora - ultima_noticia >= timedelta(minutes=30):
-            topico = noticia_topicos[indice_topico % len(noticia_topicos)]
-            noticias = buscar_noticias(topico)
-            msg = nova_noticia(noticias)
 
-            if not msg:
-                noticias_fallback = buscar_noticias("digital news")
-                msg = nova_noticia(noticias_fallback)
-                if msg:
-                    msg = "🌍 <b>Notícia Importante do Mundo</b>
-" + msg
+if __name__ == '__main__':
+    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=os.environ.get('PORT', 5000), debug=True, use_reloader=False)).start()
+    iniciar_bot()
 
-            if not msg:
-                enviar_conteudo_digital()
-            else:
-                enviar_mensagem(msg)
-
-            indice_topico += 1
-            ultima_noticia = agora
-
-        if agora - ultima_motivacional >= timedelta(hours=2):
-            threading.Thread(target=enviar_motivacional).start()
-            ultima_motivacional = agora
-
-        time.sleep(60)
