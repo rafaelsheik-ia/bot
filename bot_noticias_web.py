@@ -95,7 +95,7 @@ def nova_noticia(lista):
         if url and url not in ENVIADAS:
             ENVIADAS.add(url)
             print("Notícia nova:", titulo)
-            return f"🗞 <b>{titulo}</b>
+return f"""🗞 <b>{titulo}</b>\n{url}"""
 {url}"
     return None
 
@@ -109,13 +109,13 @@ def buscar_cotacoes():
         dolar = btc['usd'] / btc['brl']
         euro = btc['eur'] / btc['brl']
         msg = (
-            f"💸 <b>COTAÇÕES ATUAIS</b>
+f"""💸 <b>COTAÇÕES ATUAIS</b>\n"""
 "
-            f"🪙 Bitcoin: ${btc['usd']:,} | R${btc['brl']:,}
+f"""🪙 Bitcoin: ${btc["usd"]:,} | R${btc["brl"]:,}\n"""
 "
-            f"⛓ Ethereum: ${eth['usd']:,} | R${eth['brl']:,}
+f"""⛓ Ethereum: ${eth["usd"]:,} | R${eth["brl"]:,}\n"""
 "
-            f"💵 Dólar: R${dolar:.2f} | 💶 Euro: R${euro:.2f}"
+f"""💵 Dólar: R${dolar:.2f} | 💶 Euro: R${euro:.2f}"""
         )
         return msg
     except Exception as e:
@@ -137,9 +137,9 @@ def buscar_ouro_prata():
         ouro = data['rates']['XAU']
         prata = data['rates']['XAG']
         msg = (
-            f"🥇 <b>Metais Preciosos (cotação de {ontem})</b>
+f"""🥇 <b>Metais Preciosos (cotação de {ontem})</b>\n"""
 "
-            f"💰 Ouro (XAU): ${1 / ouro:.2f} por onça troy
+f"""💰 Ouro (XAU): ${1 / ouro:.2f} por onça troy\n"""
 "
             f"🥈 Prata (XAG): ${1 / prata:.2f} por onça troy"
         )
@@ -150,9 +150,9 @@ def buscar_ouro_prata():
         ouro = data['rates']['XAU']
         prata = data['rates']['XAG']
         msg = (
-            f"🥇 <b>Metais Preciosos</b>
+f"""🥇 <b>Metais Preciosos</b>\n"""
 "
-            f"💰 Ouro (XAU): R${ouro:.2f} por onça troy
+f"""💰 Ouro (XAU): R${ouro:.2f} por onça troy\n"""
 "
             f"🥈 Prata (XAG): R${prata:.2f} por onça troy"
         )
