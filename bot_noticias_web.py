@@ -147,56 +147,64 @@ def enviar_motivacional():
         msg = random.choice(mensagens_boa_noite)
     enviar_mensagem(msg)
 
+
 def loop_automacoes():
     enviado_cafe = False
     enviado_almoco = False
     enviado_jantar = False
+
+    ultima_noticia = datetime.now() - timedelta(minutes=30)
+    ultima_cotacao = datetime.now() - timedelta(minutes=30)
+    ultima_motivacional = datetime.now() - timedelta(hours=6)
+
     while True:
         agora = datetime.now()
         hora = agora.hour
 
-        # Motivacional a cada 2h
-        if agora.minute == 0 and hora % 2 == 0:
-            print("🕒 Enviando mensagem motivacional")
+        # Mensagem motivacional a cada 6 horas
+        if (agora - ultima_motivacional).total_seconds() >= 21600:
+            print("✨ Enviando mensagem motivacional")
             enviar_motivacional()
+            ultima_motivacional = agora
 
-        # Receita de acordo com hora
+        # Receita conforme hora
         if hora == 8 and not enviado_cafe:
-            print("🥣 Enviando café da manhã")
+            print("🍳 Enviando café da manhã")
             enviar_receita("cafe")
             enviado_cafe = True
         elif hora == 12 and not enviado_almoco:
-            print("🍽️ Enviando almoço")
+            print("🍛 Enviando almoço")
             enviar_receita("almoco")
             enviado_almoco = True
         elif hora == 18 and not enviado_jantar:
-            print("🌙 Enviando jantar")
+            print("🥗 Enviando jantar")
             enviar_receita("jantar")
             enviado_jantar = True
 
         if hora == 0:
             enviado_cafe = enviado_almoco = enviado_jantar = False
 
-        # Notícias a cada 30 min
-        if agora.minute % 30 == 0:
+        # Notícias a cada 30 minutos
+        if (agora - ultima_noticia).total_seconds() >= 1800:
             for topico in ["IA", "Crypto", "Tecnologia", "Notícia Mundial"]:
-                print(f"📰 Buscando notícias sobre {topico}")
+                print(f"🔍 Buscando notícias sobre {topico}")
                 noticias = buscar_noticias(topico)
                 msg = nova_noticia(noticias)
                 if msg:
                     enviar_mensagem(msg)
                     break
+            ultima_noticia = agora
 
-        # Cotação
-        cotacao1 = buscar_cotacoes()
-        if cotacao1:
-            enviar_mensagem(cotacao1)
-        cotacao2 = buscar_ouro_prata()
-        if cotacao2:
-            enviar_mensagem(cotacao2)
+        # Cotações a cada 30 minutos (após notícias)
+        if (agora - ultima_cotacao).total_seconds() >= 1800:
+            print("🔄 Buscando cotação de criptomoedas/moedas...")
+            cotacao1 = buscar_cotacoes()
+            if cotacao1:
+                enviar_mensagem(cotacao1)
+            cotacao2 = buscar_ouro_prata()
+            if cotacao2:
+                enviar_mensagem(cotacao2)
+            ultima_cotacao = agora
 
         time.sleep(60)
 
-if __name__ == '__main__':
-    threading.Thread(target=loop_automacoes).start()
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
