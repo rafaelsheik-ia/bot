@@ -8,9 +8,9 @@ from flask import Flask
 # === CHAVES FIXADAS ===
 TELEGRAM_TOKEN = '8067274719:AAEWHOSwqquzP3qvhBKZryM7QfTMEAbMPhg'
 CHAT_ID = '-1002562674482'
-API_TUBE_KEY = 'api_live_TSGaZx9AKt5AVpWi5PWFAJMJPPIhUkCLP5gTfAQHbpiANT4hA4Mxvx'
-NEWSDATA_KEY = 'pub_2f53083927874e8bbe43b5a87755a2cd'
-METALS_API_KEY = '93d171ec531b8034b1f9d577912de823'
+API_TUBE_KEY = 'api_live_WDbN2xEC4UiK7njGMI5NueewC1BwqUCVnkvSFDtxEre'
+NEWSDATA_KEY = 'pub_81f6ebae1409466bfbf96d0d12edc1d7c'
+METALS_API_KEY = '68802c527be38e8e320c2c574ce4c3cc'
 
 # DEBUG: Verificando se as chaves foram carregadas corretamente
 print(f"DEBUG: TELEGRAM_TOKEN carregado: {TELEGRAM_TOKEN[:5]}...")
@@ -50,6 +50,7 @@ def buscar_noticias(topico):
     for url in urls:
         try:
             resp = requests.get(url, timeout=10)
+            print(f"DEBUG: Resposta News API ({url[:30]}...): Status {resp.status_code}, Body: {resp.text[:100]}...")
             noticias = resp.json().get('results', [])
             for noticia in noticias:
                 link = noticia.get('link') or noticia.get('url')
@@ -64,6 +65,7 @@ def buscar_noticias(topico):
 def buscar_cotacoes():
     try:
         resp = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd,brl')
+        print(f"DEBUG: Resposta CoinGecko API: Status {resp.status_code}, Body: {resp.text[:100]}...")
         data = resp.json()
         btc = data['bitcoin']
         eth = data['ethereum']
@@ -81,6 +83,7 @@ def buscar_metais():
         ontem = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
         url = f'https://metals-api.com/api/{ontem}?access_key={METALS_API_KEY}&base=USD&symbols=XAU,XAG'
         r = requests.get(url)
+        print(f"DEBUG: Resposta Metals API: Status {r.status_code}, Body: {r.text[:100]}...")
         data = r.json()
         ouro = data['rates']['XAU']
         prata = data['rates']['XAG']
@@ -152,8 +155,8 @@ def enviar_inicio():
     enviar_mensagem("🤖 Bot iniciado! Aqui está sua primeira dose de informação:")
 
     # Motivacional e Receita (independente da hora, só no início)
-    enviar_mensagem("💡 Motivação: " + random.choice(mensagens_motivacionais["bom_dia"])[0]) # [0] para pegar a string da lista
-    enviar_mensagem("🍽 Receita: " + random.choice(receitas["cafe"])[0]) # [0] para pegar a string da lista
+    enviar_mensagem("💡 Motivação: " + random.choice(mensagens_motivacionais["bom_dia"]))
+    enviar_mensagem("🍽 Receita: " + random.choice(receitas["cafe"]))
 
     # Notícia
     msg = buscar_noticias("inteligência artificial") or buscar_noticias("criptomoeda")
