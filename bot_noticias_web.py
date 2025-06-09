@@ -1,8 +1,9 @@
 import requests
-import time
-import threading
 import random
+import time
 from datetime import datetime, timedelta
+import xml.etree.ElementTree as ET
+import re
 from flask import Flask
 
 # === CHAVES FIXADAS ===
@@ -26,6 +27,7 @@ ENVIADAS = set()
 ULTIMA_MOTIVACIONAL = (-1, None)
 ULTIMA_RECEITA = (-1, None)
 RECEITAS_ENVIADAS = set()  # Para controlar receitas já enviadas
+CURSOS_ENVIADOS = set()  # Para controlar cursos já enviados
 
 app = Flask(__name__)
 
@@ -43,6 +45,90 @@ def enviar_mensagem(mensagem):
         print(f"✅ RESPOSTA TELEGRAM BODY: {resp.text}") # Adicionado para imprimir o corpo da resposta
     except Exception as e:
         print("❌ Erro ao enviar mensagem:", e)
+
+def buscar_noticias_rss():
+    """Busca notícias atualizadas do RSS (com fallback para G1)"""
+    try:
+        # Tenta primeiro a Agência Brasil
+        url = 'https://agenciabrasil.ebc.com.br/rss.xml'
+        resp = requests.get(url, timeout=15)
+        print(f"DEBUG: Resposta RSS Agência Brasil: Status {resp.status_code}")
+        
+        # Se Agência Brasil falhar, usa G1 como fallback
+        if resp.status_code != 200:
+            print("DEBUG: Agência Brasil falhou, tentando G1...")
+            url = 'https://g1.globo.com/rss/g1/'
+            resp = requests.get(url, timeout=15)
+            print(f"DEBUG: Resposta RSS G1: Status {resp.status_code}")
+        
+        if resp.status_code == 200:
+            # Parse do XML RSS
+            root = ET.fromstring(resp.content)
+            
+            # Busca pelos itens de notícia
+            items = root.findall('.//item')
+            
+            if not items:
+                print("DEBUG: Nenhum item encontrado no RSS")
+                return None
+            
+            # Pega uma notícia aleatória dos primeiros 10 itens (mais recentes)
+            recent_items = items[:10]
+            item = random.choice(recent_items)
+            
+            # Extrai informações da notícia
+            title = item.find('title')
+            link = item.find('link')
+            description = item.find('description')
+            
+            if title is not None and link is not None:
+                title_text = title.text.strip()
+                link_text = link.text.strip()
+                
+                # Verifica se já foi enviada
+                if link_text in ENVIADAS:
+                    print("DEBUG: Notícia já foi enviada, tentando outra...")
+                    return None
+                
+                ENVIADAS.add(link_text)
+                
+                # Limpa a descrição removendo HTML
+                desc_text = ""
+                if description is not None and description.text:
+                    desc_text = re.sub(r'<[^>]+>', '', description.text)
+                    desc_text = re.sub(r'\s+', ' ', desc_text).strip()
+                    # Limita o tamanho da descrição
+                    if len(desc_text) > 200:
+                        desc_text = desc_text[:200] + "..."
+                
+                fonte = "Agência Brasil" if "agenciabrasil" in url else "G1"
+                
+                return (
+                    f"📰 <b>NOTÍCIA ATUALIZADA</b>\n\n"
+                    f"<b>{title_text}</b>\n\n"
+                    f"{desc_text}\n\n"
+                    f"🔗 <a href='{link_text}'>Leia mais</a>\n"
+                    f"📺 Fonte: {fonte}"
+                )
+            else:
+                print("DEBUG: Título ou link não encontrados no item RSS")
+                return None
+        else:
+            print(f"DEBUG: RSS retornou status {resp.status_code}")
+            return None
+            
+    except ET.ParseError as e:
+        print(f"DEBUG: Erro ao fazer parse do XML RSS: {e}")
+        return None
+    except requests.exceptions.Timeout:
+        print("DEBUG: Timeout na requisição RSS")
+        return "⚠️ Timeout ao buscar notícias."
+    except requests.exceptions.RequestException as e:
+        print(f"DEBUG: Erro de conexão RSS: {e}")
+        return "⚠️ Erro de conexão ao buscar notícias."
+    except Exception as e:
+        print(f"DEBUG: Erro geral ao buscar notícias RSS: {e}")
+        return None
 
 def buscar_noticias(topico):
     # Removido o filtro de data para buscar as notícias mais recentes
@@ -63,48 +149,41 @@ def buscar_noticias(topico):
 
 def buscar_cotacoes():
     try:
-        # Aumentando timeout e adicionando retry
-        resp = requests.get(
-            'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd,brl',
-            timeout=15,
-            headers={'User-Agent': 'Mozilla/5.0 (compatible; Bot/1.0)'}
-        )
-        print(f"DEBUG: Resposta CoinGecko API: Status {resp.status_code}, Body: {resp.text[:100]}...")
+        # Usando CryptoCompare API (gratuita e sem chave)
+        url = 'https://min-api.cryptocompare.com/data/pricemulti?fsyms=BTC,ETH&tsyms=USD,BRL'
+        resp = requests.get(url, timeout=15)
+        print(f"DEBUG: Resposta CryptoCompare API: Status {resp.status_code}, Body: {resp.text[:100]}...")
         
         if resp.status_code == 200:
             data = resp.json()
             
             # Verifica se os dados estão completos
-            if 'bitcoin' not in data or 'ethereum' not in data:
-                print("DEBUG: Dados incompletos da CoinGecko")
+            if 'BTC' not in data or 'ETH' not in data:
+                print("DEBUG: Dados incompletos da CryptoCompare")
                 return None
                 
-            btc = data['bitcoin']
-            eth = data['ethereum']
+            btc = data['BTC']
+            eth = data['ETH']
             
             # Verifica se todas as moedas estão presentes
-            if 'brl' not in btc or 'usd' not in btc or 'brl' not in eth or 'usd' not in eth:
-                print("DEBUG: Moedas faltando nos dados da CoinGecko")
+            if 'BRL' not in btc or 'USD' not in btc or 'BRL' not in eth or 'USD' not in eth:
+                print("DEBUG: Moedas faltando nos dados da CryptoCompare")
                 return None
             
             return (
                 "💰 <b>COTAÇÕES CRYPTO</b>\n"
-                f"₿ Bitcoin: R${btc['brl']:,.0f} | ${btc['usd']:,.0f}\n"
-                f"⟠ Ethereum: R${eth['brl']:,.0f} | ${eth['usd']:,.0f}"
+                f"₿ Bitcoin: R${btc['BRL']:,.0f} | ${btc['USD']:,.0f}\n"
+                f"⟠ Ethereum: R${eth['BRL']:,.0f} | ${eth['USD']:,.0f}"
             )
-        elif resp.status_code == 429:
-            print("DEBUG: Rate limit atingido na CoinGecko, aguardando...")
-            time.sleep(2)
-            return "⚠️ Muitas requisições, tentando novamente em instantes..."
         else:
-            print(f"DEBUG: CoinGecko retornou status {resp.status_code}")
+            print(f"DEBUG: CryptoCompare retornou status {resp.status_code}")
             return None
             
     except requests.exceptions.Timeout:
-        print("DEBUG: Timeout na requisição CoinGecko")
+        print("DEBUG: Timeout na requisição CryptoCompare")
         return "⚠️ Timeout ao buscar cotações de criptomoedas."
     except requests.exceptions.RequestException as e:
-        print(f"DEBUG: Erro de conexão CoinGecko: {e}")
+        print(f"DEBUG: Erro de conexão CryptoCompare: {e}")
         return "⚠️ Erro de conexão ao buscar cotações de criptomoedas."
     except Exception as e:
         print("Erro ao buscar cotações:", e)
@@ -156,6 +235,94 @@ mensagens_motivacionais = {
     "boa_tarde": ["🌤 Boa tarde! Mantenha o foco 👉 https://t.me/rafaelsheikIA"],
     "boa_noite": ["🌙 Boa noite! Enquanto o mundo dorme, a inovação não para 👉 https://t.me/rafaelsheikIA"]
 }
+
+def buscar_cursos_gratuitos():
+    """Busca cursos gratuitos do RSS do FreeCodeCamp"""
+    try:
+        url = 'https://www.freecodecamp.org/news/rss/'
+        resp = requests.get(url, timeout=15)
+        print(f"DEBUG: Resposta RSS FreeCodeCamp: Status {resp.status_code}")
+        
+        if resp.status_code == 200:
+            # Parse do XML RSS
+            root = ET.fromstring(resp.content)
+            
+            # Busca pelos itens de artigo/curso
+            items = root.findall('.//item')
+            
+            if not items:
+                print("DEBUG: Nenhum item encontrado no RSS do FreeCodeCamp")
+                return None
+            
+            # Filtra artigos relacionados a cursos, tutoriais, etc.
+            course_keywords = ['tutorial', 'course', 'learn', 'guide', 'how to', 'beginner', 'introduction', 'complete']
+            course_items = []
+            
+            for item in items[:20]:  # Verifica os 20 mais recentes
+                title = item.find('title')
+                if title is not None and title.text:
+                    title_text = title.text.lower()
+                    if any(keyword in title_text for keyword in course_keywords):
+                        course_items.append(item)
+            
+            if not course_items:
+                print("DEBUG: Nenhum curso encontrado no RSS")
+                return None
+            
+            # Pega um curso aleatório
+            item = random.choice(course_items)
+            
+            # Extrai informações do curso
+            title = item.find('title')
+            link = item.find('link')
+            description = item.find('description')
+            
+            if title is not None and link is not None:
+                title_text = title.text.strip()
+                link_text = link.text.strip()
+                
+                # Verifica se já foi enviado
+                if link_text in CURSOS_ENVIADOS:
+                    print("DEBUG: Curso já foi enviado, tentando outro...")
+                    return None
+                
+                CURSOS_ENVIADOS.add(link_text)
+                
+                # Limpa a descrição removendo HTML
+                desc_text = ""
+                if description is not None and description.text:
+                    desc_text = re.sub(r'<[^>]+>', '', description.text)
+                    desc_text = re.sub(r'\s+', ' ', desc_text).strip()
+                    # Limita o tamanho da descrição
+                    if len(desc_text) > 250:
+                        desc_text = desc_text[:250] + "..."
+                
+                return (
+                    f"🎓 <b>CURSO GRATUITO DISPONÍVEL</b>\n\n"
+                    f"<b>{title_text}</b>\n\n"
+                    f"{desc_text}\n\n"
+                    f"🔗 <a href='{link_text}'>Acessar curso gratuito</a>\n\n"
+                    f"📚 Fonte: FreeCodeCamp"
+                )
+            else:
+                print("DEBUG: Título ou link não encontrados no item RSS")
+                return None
+        else:
+            print(f"DEBUG: RSS FreeCodeCamp retornou status {resp.status_code}")
+            return None
+            
+    except ET.ParseError as e:
+        print(f"DEBUG: Erro ao fazer parse do XML RSS FreeCodeCamp: {e}")
+        return None
+    except requests.exceptions.Timeout:
+        print("DEBUG: Timeout na requisição RSS FreeCodeCamp")
+        return "⚠️ Timeout ao buscar cursos."
+    except requests.exceptions.RequestException as e:
+        print(f"DEBUG: Erro de conexão RSS FreeCodeCamp: {e}")
+        return "⚠️ Erro de conexão ao buscar cursos."
+    except Exception as e:
+        print(f"DEBUG: Erro geral ao buscar cursos RSS: {e}")
+        return None
 
 def buscar_receita_nova():
     """Busca uma receita nova da API gratuita de receitas"""
@@ -228,6 +395,18 @@ def enviar_motivacional( ):
         enviar_mensagem(mensagem)
         ULTIMA_MOTIVACIONAL = (hora, hoje)
 
+def enviar_curso_do_dia():
+    """Envia cursos gratuitos em horários específicos"""
+    hora = datetime.now().hour
+    
+    # Envia cursos em horários específicos (diferentes das receitas)
+    if hora in [10, 14, 20]:  # 10h, 14h e 20h
+        curso = buscar_cursos_gratuitos()
+        if curso:
+            enviar_mensagem(curso)
+        else:
+            print("DEBUG: Nenhum curso novo encontrado no momento")
+
 def enviar_receita_do_dia():
     global ULTIMA_RECEITA
     hora = datetime.now().hour
@@ -260,6 +439,13 @@ def enviar_inicio():
     else:
         enviar_mensagem("⚠️ Não foi possível buscar uma receita no momento.") 
 
+    # Curso gratuito (só no início)
+    curso_inicial = buscar_cursos_gratuitos()
+    if curso_inicial:
+        enviar_mensagem(curso_inicial)
+    else:
+        enviar_mensagem("⚠️ Nenhum curso disponível no momento.")
+
     # Notícia
     msg = buscar_noticias("inteligência artificial") or buscar_noticias("criptomoeda")
     if msg:
@@ -290,15 +476,20 @@ def loop_automacoes():
         print("🔄 Ciclo automático em execução...")
         start_time = time.time()
 
-        # Notícias (a cada 30 minutos)
-        random.shuffle(topicos)
-        for topico in topicos:
-            msg = buscar_noticias(topico)
-            if msg:
-                enviar_mensagem(msg)
-                break
+        # Notícias atualizadas (prioriza RSS da Agência Brasil)
+        noticia_rss = buscar_noticias_rss()
+        if noticia_rss:
+            enviar_mensagem(noticia_rss)
         else:
-            enviar_mensagem("⚠️ Nenhuma notícia disponível no momento.")
+            # Fallback para a API antiga se RSS falhar
+            random.shuffle(topicos)
+            for topico in topicos:
+                msg = buscar_noticias(topico)
+                if msg:
+                    enviar_mensagem(msg)
+                    break
+            else:
+                enviar_mensagem("⚠️ Nenhuma notícia disponível no momento.")
 
         # Cotações (intercaladas com as notícias)
         cot = buscar_cotacoes()
@@ -319,9 +510,10 @@ def loop_automacoes():
         else:
             enviar_mensagem("⚠️ Não foi possível obter cotações de moedas fiduciárias no momento.")
 
-        # Mensagens motivacionais e receitas (com lógica de horário dentro das funções)
+        # Mensagens motivacionais, receitas e cursos (com lógica de horário dentro das funções)
         enviar_motivacional()
         enviar_receita_do_dia()
+        enviar_curso_do_dia()  # Nova função de cursos
 
         end_time = time.time()
         elapsed_time = end_time - start_time
