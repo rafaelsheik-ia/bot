@@ -4,6 +4,7 @@ import time
 from datetime import datetime, timedelta
 import xml.etree.ElementTree as ET
 import re
+import threading
 from flask import Flask
 
 # === CHAVES FIXADAS ===
