@@ -25,6 +25,7 @@ print(f"DEBUG: AWESOME_API_KEY carregado: {AWESOME_API_KEY[:5]}...")
 ENVIADAS = set()
 ULTIMA_MOTIVACIONAL = (-1, None)
 ULTIMA_RECEITA = (-1, None)
+RECEITAS_ENVIADAS = set()  # Para controlar receitas já enviadas
 
 app = Flask(__name__)
 
@@ -62,16 +63,49 @@ def buscar_noticias(topico):
 
 def buscar_cotacoes():
     try:
-        resp = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd,brl' )
-        print(f"DEBUG: Resposta CoinGecko API: Status {resp.status_code}, Body: {resp.text[:100]}...")
-        data = resp.json()
-        btc = data['bitcoin']
-        eth = data['ethereum']
-        return (
-            "💰 <b>COTAÇÕES</b>\n"
-            f"Bitcoin: R${btc['brl']:,} | ${btc['usd']:,}\n"
-            f"Ethereum: R${eth['brl']:,} | ${eth['usd']:,}"
+        # Aumentando timeout e adicionando retry
+        resp = requests.get(
+            'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd,brl',
+            timeout=15,
+            headers={'User-Agent': 'Mozilla/5.0 (compatible; Bot/1.0)'}
         )
+        print(f"DEBUG: Resposta CoinGecko API: Status {resp.status_code}, Body: {resp.text[:100]}...")
+        
+        if resp.status_code == 200:
+            data = resp.json()
+            
+            # Verifica se os dados estão completos
+            if 'bitcoin' not in data or 'ethereum' not in data:
+                print("DEBUG: Dados incompletos da CoinGecko")
+                return None
+                
+            btc = data['bitcoin']
+            eth = data['ethereum']
+            
+            # Verifica se todas as moedas estão presentes
+            if 'brl' not in btc or 'usd' not in btc or 'brl' not in eth or 'usd' not in eth:
+                print("DEBUG: Moedas faltando nos dados da CoinGecko")
+                return None
+            
+            return (
+                "💰 <b>COTAÇÕES CRYPTO</b>\n"
+                f"₿ Bitcoin: R${btc['brl']:,.0f} | ${btc['usd']:,.0f}\n"
+                f"⟠ Ethereum: R${eth['brl']:,.0f} | ${eth['usd']:,.0f}"
+            )
+        elif resp.status_code == 429:
+            print("DEBUG: Rate limit atingido na CoinGecko, aguardando...")
+            time.sleep(2)
+            return "⚠️ Muitas requisições, tentando novamente em instantes..."
+        else:
+            print(f"DEBUG: CoinGecko retornou status {resp.status_code}")
+            return None
+            
+    except requests.exceptions.Timeout:
+        print("DEBUG: Timeout na requisição CoinGecko")
+        return "⚠️ Timeout ao buscar cotações de criptomoedas."
+    except requests.exceptions.RequestException as e:
+        print(f"DEBUG: Erro de conexão CoinGecko: {e}")
+        return "⚠️ Erro de conexão ao buscar cotações de criptomoedas."
     except Exception as e:
         print("Erro ao buscar cotações:", e)
         return None
@@ -123,12 +157,56 @@ mensagens_motivacionais = {
     "boa_noite": ["🌙 Boa noite! Enquanto o mundo dorme, a inovação não para 👉 https://t.me/rafaelsheikIA"]
 }
 
-receitas = {
-    "cafe": ["☕ Smoothie com aveia: https://www.receiteria.com.br/receita/smoothie-de-banana-com-aveia/"],
-    "almoco": ["🍛 Frango com legumes: https://www.receiteria.com.br/receita/frango-com-legumes-no-vapor/"],
-    "jantar": ["🍲 Omelete de forno: https://www.tudogostoso.com.br/receita/277025-omelete-de-forno-fit.html"],
-    "lanche_noite": ["🥪 Sanduíche natural: https://www.receiteria.com.br/receita/sanduiche-natural-de-frango/"]
-}
+def buscar_receita_nova():
+    """Busca uma receita nova da API gratuita de receitas"""
+    try:
+        url = 'https://api-receitas-pi.vercel.app/receitas/todas'
+        resp = requests.get(url, timeout=10)
+        print(f"DEBUG: Resposta API Receitas: Status {resp.status_code}, Body: {resp.text[:100]}...")
+        
+        if resp.status_code == 200:
+            receitas = resp.json()
+            
+            # Filtra receitas que ainda não foram enviadas
+            receitas_disponiveis = [r for r in receitas if r['id'] not in RECEITAS_ENVIADAS]
+            
+            # Se todas as receitas já foram enviadas, limpa o histórico e reinicia
+            if not receitas_disponiveis:
+                print("DEBUG: Todas as receitas foram enviadas, reiniciando lista...")
+                RECEITAS_ENVIADAS.clear()
+                receitas_disponiveis = receitas
+            
+            if receitas_disponiveis:
+                receita = random.choice(receitas_disponiveis)
+                RECEITAS_ENVIADAS.add(receita['id'])
+                
+                # Formata a receita para envio
+                nome = receita['receita']
+                ingredientes = receita['ingredientes']
+                modo_preparo = receita['modo_preparo']
+                tipo = receita.get('tipo', 'receita')
+                
+                # Limita o tamanho para não exceder limite do Telegram
+                if len(ingredientes) > 200:
+                    ingredientes = ingredientes[:200] + "..."
+                if len(modo_preparo) > 300:
+                    modo_preparo = modo_preparo[:300] + "..."
+                
+                return (
+                    f"🍽️ <b>Receita: {nome}</b>\n\n"
+                    f"📝 <b>Ingredientes:</b>\n{ingredientes}\n\n"
+                    f"👨‍🍳 <b>Modo de Preparo:</b>\n{modo_preparo}\n\n"
+                    f"🏷️ Tipo: {tipo.title()}"
+                )
+            else:
+                return None
+        else:
+            print(f"DEBUG: API Receitas retornou status {resp.status_code}")
+            return None
+            
+    except Exception as e:
+        print(f"Erro ao buscar receita nova: {e}")
+        return None
 
 def enviar_motivacional( ):
     global ULTIMA_MOTIVACIONAL
@@ -157,20 +235,14 @@ def enviar_receita_do_dia():
     if ULTIMA_RECEITA == (hora, hoje):
         return
 
-    tipo = None
-    if hora == 8:
-        tipo = "cafe"
-    elif hora == 12:
-        tipo = "almoco"
-    elif hora == 18:
-        tipo = "jantar"
-    elif hora == 22:
-        tipo = "lanche_noite"
-
-    if tipo:
-        mensagem = random.choice(receitas[tipo])
-        enviar_mensagem(mensagem)
-        ULTIMA_RECEITA = (hora, hoje)
+    # Envia receita em horários específicos
+    if hora in [8, 12, 18, 22]:
+        receita = buscar_receita_nova()
+        if receita:
+            enviar_mensagem(receita)
+            ULTIMA_RECEITA = (hora, hoje)
+        else:
+            enviar_mensagem("⚠️ Não foi possível buscar uma receita nova no momento.")
 
 def enviar_inicio():
     """Função chamada uma única vez no início."""
@@ -180,7 +252,13 @@ def enviar_inicio():
 
     # Motivacional e Receita (independente da hora, só no início)
     enviar_mensagem("💡 Motivação: " + random.choice(mensagens_motivacionais["bom_dia"])) 
-    enviar_mensagem("🍽 Receita: " + random.choice(receitas["cafe"])) 
+    
+    # Busca uma receita nova da API
+    receita_nova = buscar_receita_nova()
+    if receita_nova:
+        enviar_mensagem(receita_nova)
+    else:
+        enviar_mensagem("⚠️ Não foi possível buscar uma receita no momento.") 
 
     # Notícia
     msg = buscar_noticias("inteligência artificial") or buscar_noticias("criptomoeda")
